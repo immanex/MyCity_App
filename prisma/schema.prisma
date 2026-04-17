@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("SUPABASE_DB_URL")
+}
+
+model User {
+  id              String          @id @default(uuid())
+  email           String          @unique
+  fullName        String
+  phoneNumber     String?
+  profileImage    String?
+  role            Role            @default(USER)
+  isVerified      Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  properties      Property[]
+  savedProperties SavedProperty[]
+  inquiries       Inquiry[]
+  savedSearches   SavedSearch[]
+  agentMetadata   AgentMetadata?
+  events          UserEvent[]
+  reports         PropertyReport[]
+}
+
+model AgentMetadata {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  agencyName      String
+  licenseNumber   String?
+  yearsExperience Int?
+  bio             String?
+  isApproved      Boolean  @default(false)
+}
+
+model Property {
+  id            String            @id @default(uuid())
+  agentId       String
+  agent         User              @relation(fields: [agentId], references: [id])
+  title         String
+  description   String
+  city          String
+  area          String
+  fullAddress   String
+  latitude      Float
+  longitude     Float
+  priceDisplay  String
+  priceNumeric  Int
+  beds          Int?
+  baths         Int?
+  toilets       Int?
+  sqm           Int?
+  propertyType  PropertyType
+  listingType   ListingType
+  isVerified    Boolean           @default(false)
+  featured      Boolean           @default(false)
+  status        Status            @default(AVAILABLE)
+  createdAt     DateTime          @default(now())
+  images        PropertyImage[]
+  amenities     PropertyAmenity[]
+  savedBy       SavedProperty[]
+  inquiries     Inquiry[]
+  embedding     PropertyEmbedding?
+  reports       PropertyReport[]
+  featuredIndex Int?
+}
+
+model PropertyImage {
+  id         String   @id @default(uuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  imageUrl   String
+  isCover    Boolean  @default(false)
+}
+
+model Amenity {
+  id         String            @id @default(uuid())
+  name       String            @unique
+  properties PropertyAmenity[]
+}
+
+model PropertyAmenity {
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  amenityId  String
+  amenity    Amenity  @relation(fields: [amenityId], references: [id])
+  @@id([propertyId, amenityId])
+}
+
+model SavedProperty {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+  savedAt    DateTime @default(now())
+  @@unique([userId, propertyId])
+}
+
+model Inquiry {
+  id          String      @id @default(uuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  propertyId  String
+  property    Property    @relation(fields: [propertyId], references: [id])
+  agentId     String
+  message     String
+  contactType ContactType
+  isRead      Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+}
+
+model Neighborhood {
+  id            String   @id @default(uuid())
+  city          String
+  areaName      String
+  description   String?
+  avgPrice      Int?
+  lifestyleTags String[]
+  centerLat     Float?
+  centerLng     Float?
+  polygonGeoJson Json?
+}
+
+model UserEvent {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  eventType   String
+  propertyId  String?
+  searchQuery String?
+  createdAt   DateTime @default(now())
+}
+
+model PropertyEmbedding {
+  id         String   @id @default(uuid())
+  propertyId String   @unique
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  embedding  Json?
+}
+
+model SavedSearch {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  filters    Json
+  emailNotifications Boolean @default(false)
+  lastNotifiedAt     DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+enum Role {
+  USER
+  AGENT
+  ADMIN
+}
+
+enum PropertyType {
+  HOUSE
+  APARTMENT
+  LAND
+  COMMERCIAL
+}
+
+enum ListingType {
+  BUY
+  RENT
+  SHORTLET
+}
+
+enum Status {
+  AVAILABLE
+  SOLD
+  RENTED
+}
+
+enum ContactType {
+  WHATSAPP
+  IN_APP
+}
+
+model AdminAction {
+  id          String   @id @default(uuid())
+  adminId     String
+  action      String
+  targetType  String
+  targetId    String
+  details     Json?
+  createdAt   DateTime @default(now())
+}
+
+model PropertyReport {
+  id          String   @id @default(uuid())
+  propertyId  String
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  reason      String
+  description String?
+  status      ReportStatus @default(PENDING)
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime @default(now())
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+}
