@@ -23,6 +23,7 @@ model User {
   agentMetadata   AgentMetadata?
   events          UserEvent[]
   reports         PropertyReport[]
+  preferences     UserPreferences?
 }
 
 model AgentMetadata {
@@ -139,7 +140,7 @@ model PropertyEmbedding {
   id         String   @id @default(uuid())
   propertyId String   @unique
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  embedding  Json?
+  embedding  Unsupported("vector(1536)")?
 }
 
 model SavedSearch {
@@ -212,4 +213,36 @@ enum ReportStatus {
   PENDING
   REVIEWED
   DISMISSED
+}
+
+model RecommendationFeedback {
+  id         String   @id @default(uuid())
+  userId     String?
+  propertyId String
+  wasClicked Boolean  @default(false)
+  wasSaved   Boolean  @default(false)
+  dismissed  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model UserSimilarity {
+  id               String   @id @default(uuid())
+  userId1          String
+  userId2          String
+  similarityScore  Float
+  updatedAt        DateTime @updatedAt
+
+  @@unique([userId1, userId2])
+}
+
+model UserPreferences {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredCities  String[]
+  preferredAreas   String[]
+  maxPrice         Int?
+  minBeds          Int?
+  propertyTypes    String[]
+  updatedAt        DateTime @updatedAt
 }

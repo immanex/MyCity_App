@@ -68,6 +68,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       });
     }
 
+    // Fire and forget embedding generation webhook
+    if (process.env.APP_URL) {
+      fetch(`${process.env.APP_URL}/api/webhooks/generate-embedding`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyId: property.id, secret: process.env.CRON_SECRET })
+      }).catch(err => console.error('Webhook error:', err));
+    }
+
     return NextResponse.json(property);
   } catch (error) {
     console.error('Error updating property:', error);
