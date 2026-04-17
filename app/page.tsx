@@ -11,11 +11,12 @@ import SearchBar from '@/components/explore/SearchBar';
 import PropertyCard from '@/components/property/PropertyCard';
 import PropertySkeleton from '@/components/property/PropertySkeleton';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, TrendingUp, Star, Map, History, ArrowRight } from 'lucide-react';
+import { ChevronRight, TrendingUp, Star, Map, History, ArrowRight, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Home() {
   const [featuredProperties, setFeaturedProperties] = useState<any[]>([]);
+  const [recommendedProperties, setRecommendedProperties] = useState<any[]>([]);
   const [trendingProperties, setTrendingProperties] = useState<any[]>([]);
   const [premiumProperties, setPremiumProperties] = useState<any[]>([]);
   const [neighborhoods, setNeighborhoods] = useState<any[]>([]);
@@ -29,21 +30,24 @@ export default function Home() {
 
     const fetchData = async () => {
       try {
-        const [featuredRes, trendingRes, premiumRes, neighborhoodRes] = await Promise.all([
+        const [featuredRes, recommendedRes, trendingRes, premiumRes, neighborhoodRes] = await Promise.all([
           fetch('/api/properties?limit=5&sort=newest'), // Featured for carousel
+          fetch(`/api/properties/recommended?city=${city}`),
           fetch(`/api/properties?city=${city}&limit=6&sort=newest`),
           fetch('/api/properties?limit=8&sort=price_desc'),
           fetch('/api/neighborhoods'),
         ]);
 
-        const [featured, trending, premium, neighborhoodData] = await Promise.all([
+        const [featured, recommended, trending, premium, neighborhoodData] = await Promise.all([
           featuredRes.json(),
+          recommendedRes.json(),
           trendingRes.json(),
           premiumRes.json(),
           neighborhoodRes.json(),
         ]);
 
         setFeaturedProperties(featured.properties || []);
+        setRecommendedProperties(recommended.properties || []);
         setTrendingProperties(trending.properties || []);
         setPremiumProperties(premium.properties || []);
         setNeighborhoods(Array.isArray(neighborhoodData) ? neighborhoodData : []);
@@ -66,6 +70,11 @@ export default function Home() {
 
     fetchData();
   }, []);
+
+  const clearHistory = () => {
+    localStorage.removeItem('mycity_recently_viewed');
+    setRecentlyViewed([]);
+  };
 
   return (
     <div className="min-h-screen pb-24 md:pb-0">
@@ -91,6 +100,29 @@ export default function Home() {
         <div className="md:hidden -mt-8 relative z-20">
           <SearchBar />
         </div>
+
+        {/* Recommended Section (AI) */}
+        {recommendedProperties.length > 0 && (
+          <section className="space-y-8">
+            <div className="flex items-end justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-indigo-600 font-bold uppercase tracking-[0.2em] text-xs bg-indigo-50 w-fit px-3 py-1 rounded-full">
+                  <Sparkles className="w-4 h-4" />
+                  Recommended for you
+                </div>
+                <h2 className="text-3xl md:text-5xl font-serif font-bold">Based on your activity</h2>
+              </div>
+            </div>
+
+            <div className="flex overflow-x-auto pb-4 gap-6 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+              {recommendedProperties.map((property) => (
+                <div key={property.id} className="min-w-[300px] md:min-w-[350px]">
+                  <PropertyCard property={property} />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Trending Section */}
         <section className="space-y-8">
@@ -201,11 +233,16 @@ export default function Home() {
         {/* Recently Viewed */}
         {recentlyViewed.length > 0 && (
           <section className="space-y-6">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-slate-100 text-slate-700">
-                <History className="w-5 h-5" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-slate-100 text-slate-700">
+                  <History className="w-5 h-5" />
+                </div>
+                <h2 className="text-2xl md:text-3xl font-serif font-bold">Recently Viewed</h2>
               </div>
-              <h2 className="text-2xl md:text-3xl font-serif font-bold">Recently Viewed</h2>
+              <button onClick={clearHistory} className="text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-slate-600 transition-colors">
+                Clear history
+              </button>
             </div>
 
             <div className="flex overflow-x-auto pb-4 gap-6 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
