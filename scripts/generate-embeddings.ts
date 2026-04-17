@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { GoogleGenAI } from '@google/genai';
 
 const prisma = new PrismaClient();
 
@@ -18,31 +19,26 @@ async function generateEmbeddingText(property: any) {
   `.trim().replace(/\n/g, ' ');
 }
 
-async function fetchOpenAIEmbedding(text: string): Promise<number[]> {
-  const apiKey = process.env.OPENAI_API_KEY;
+async function fetchGeminiEmbedding(text: string): Promise<number[]> {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not defined in environment variables');
+    throw new Error('NEXT_PUBLIC_GEMINI_API_KEY is not defined in environment variables');
   }
 
-  const res = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      input: text,
-      model: 'text-embedding-3-small'
-    })
+  const ai = new GoogleGenAI({ apiKey });
+  const response = await ai.models.embedContent({
+    model: 'text-embedding-004',
+    contents: text,
+    config: {
+      outputDimensionality: 768
+    }
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(`OpenAI API Error: ${err.error?.message || 'Failed to fetch embedding'}`);
+  if (!response.embeddings || response.embeddings.length === 0 || !response.embeddings[0].values) {
+    throw new Error('Failed to generate embedding from Gemini API');
   }
 
-  const data = await res.json();
-  return data.data[0].embedding;
+  return response.embeddings[0].values;
 }
 
 async function main() {
@@ -66,7 +62,7 @@ async function main() {
 
     try {
       const text = await generateEmbeddingText(property);
-      const vector = await fetchOpenAIEmbedding(text);
+      const vector = await fetchGeminiEmbedding(text);
       
       // Store using pgvector raw query since Prisma Unsupported type
       // cannot be simply mapped as a normal Prisma create model

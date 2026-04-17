@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { GoogleGenAI } from '@google/genai';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,29 +35,25 @@ export async function POST(request: NextRequest) {
       Description: ${property.description}
     `.trim().replace(/\n/g, ' ');
 
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error('OPENAI_API_KEY not configured.');
+      throw new Error('NEXT_PUBLIC_GEMINI_API_KEY not configured.');
     }
 
-    const res = await fetch('https://api.openai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        input: text,
-        model: 'text-embedding-3-small'
-      })
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.embedContent({
+      model: 'text-embedding-004',
+      contents: text,
+      config: {
+        outputDimensionality: 768
+      }
     });
 
-    if (!res.ok) {
-      throw new Error('Failed to generate embedding from OpenAI');
+    if (!response.embeddings || response.embeddings.length === 0 || !response.embeddings[0].values) {
+       throw new Error('Failed to generate embedding from Gemini API');
     }
 
-    const data = await res.json();
-    const vector = data.data[0].embedding;
+    const vector = response.embeddings[0].values;
     const pgVectorStr = `[${vector.join(',')}]`;
 
     // Upsert using raw query for the vector format
