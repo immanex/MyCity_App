@@ -54,6 +54,7 @@ export default function HeroCarousel({ properties }: HeroCarouselProps) {
                 src={property.images?.find((img: any) => img.isCover)?.imageUrl || property.images?.[0]?.imageUrl}
                 alt={property.title}
                 fill
+                sizes="100vw"
                 className="object-cover"
                 priority={index === 0}
                 referrerPolicy="no-referrer"

@@ -125,6 +125,7 @@ export default function PropertyDetailPage() {
                     src={img.imageUrl}
                     alt={`${property.title} - Image ${i + 1}`}
                     fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
                     className="object-cover"
                     priority={i === 0}
                     referrerPolicy="no-referrer"
@@ -271,6 +272,7 @@ export default function PropertyDetailPage() {
                       src={property.agent.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(property.agent.fullName)}&background=059669&color=fff`}
                       alt={property.agent.fullName}
                       fill
+                      sizes="80px"
                       className="object-cover"
                     />
                   </div>

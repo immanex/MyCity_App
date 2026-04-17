@@ -104,6 +104,7 @@ export default function SearchBar() {
                         src={item.coverImage}
                         alt={item.title}
                         fill
+                        sizes="48px"
                         className="object-cover"
                         referrerPolicy="no-referrer"
                       />

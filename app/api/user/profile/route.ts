@@ -11,12 +11,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const profile = await prisma.user.findUnique({
+    let profile = await prisma.user.findUnique({
       where: { id: user.id }
     });
 
     if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      if (!user.email) {
+        return NextResponse.json({ error: 'Profile not found and email is missing' }, { status: 404 });
+      }
+      
+      // Auto-create to sync properly
+      profile = await prisma.user.create({
+        data: {
+          id: user.id,
+          email: user.email,
+          fullName: user.user_metadata?.full_name || user.email.split('@')[0],
+          profileImage: user.user_metadata?.avatar_url || null,
+          role: 'USER'
+        }
+      });
     }
 
     return NextResponse.json(profile);

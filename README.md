@@ -1,20 +1,24 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# MyCity App
 
-# Run and deploy your AI Studio app
+Premium Real Estate Platform for the Nigerian Market.
 
-This contains everything you need to run your app locally.
+## Roles and Login
 
-View your app in AI Studio: https://ai.studio/apps/247be5a7-6074-4e04-b31f-87551b4abc54
+### Regular Users
+Regular users can authenticate using Google Sign-In. You must enable the Google provider in your authentication dashboard (Supabase, Firebase, or whichever auth provider you are using).
 
-## Run Locally
+### Agents
+Agents must first register via `/agent/register`. They go through an approval process. To log in as an agent, an admin must set the user's role to `AGENT` in the database.
 
-**Prerequisites:**  Node.js
+### Admins
+Admins have access to the `/admin` dashboard. To set up an admin user:
+1. Log in via Google to create your initial user account.
+2. In the `User` table in your Postgres database, manually set your user's `role` to `ADMIN` using a database client or SQL query. Example: `UPDATE "User" SET role = 'ADMIN' WHERE email = 'your-email@example.com';`
+3. Log in again to access the admin portal.
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Setting Up Google Auth
+The app expects Google OAuth to be enabled on your auth service.
+1. Go to your Supabase/Firebase project settings.
+2. Under Authentication > Providers, enable **Google**.
+3. Set your Google OAuth Client ID and Secret (obtainable from Google Cloud Console).
+4. Save and retry signing in.

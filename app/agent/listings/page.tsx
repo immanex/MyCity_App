@@ -107,6 +107,7 @@ export default function AgentListings() {
                               src={listing.images[0].imageUrl}
                               alt={listing.title}
                               fill
+                              sizes="64px"
                               className="object-cover"
                               referrerPolicy="no-referrer"
                             />
