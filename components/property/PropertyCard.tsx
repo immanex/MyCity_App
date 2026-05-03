@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Heart, Bed, Bath, Maximize, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
@@ -18,6 +18,16 @@ export default function PropertyCard({ property, showSaveButton = true, onRemove
   const [isSaved, setIsSaved] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const supabase = createClient();
+
+  // Memoize expensive computations
+  const coverImage = useMemo(() => 
+    property.images?.find((img: any) => img.isCover)?.imageUrl || 
+    property.images?.[0]?.imageUrl || 
+    'https://picsum.photos/seed/property/800/600',
+    [property.images]
+  );
+
+  const imageSrc = `${coverImage}?width=400`;
 
   useEffect(() => {
     // In a real app, we'd check if this property is in the user's saved list
@@ -53,7 +63,7 @@ export default function PropertyCard({ property, showSaveButton = true, onRemove
         fetch('/api/events', {
           method: 'POST',
           body: JSON.stringify({ eventType: 'SAVE', propertyId: property.id }),
-        });
+        }).catch(() => {}); // Ignore errors for analytics
       } else {
         throw new Error(data.error);
       }
@@ -68,15 +78,13 @@ export default function PropertyCard({ property, showSaveButton = true, onRemove
     fetch('/api/events', {
       method: 'POST',
       body: JSON.stringify({ eventType: 'VIEW_PROPERTY', propertyId: property.id }),
-    });
+    }).catch(() => {}); // Ignore errors for analytics
 
     // Store in recently viewed
     const recentlyViewed = JSON.parse(localStorage.getItem('mycity_recently_viewed') || '[]');
     const updated = [property.id, ...recentlyViewed.filter((id: string) => id !== property.id)].slice(0, 10);
     localStorage.setItem('mycity_recently_viewed', JSON.stringify(updated));
   };
-
-  const coverImage = property.images?.find((img: any) => img.isCover)?.imageUrl || property.images?.[0]?.imageUrl || 'https://picsum.photos/seed/property/800/600';
 
   return (
     <motion.div
@@ -92,11 +100,12 @@ export default function PropertyCard({ property, showSaveButton = true, onRemove
       <Link href={`/properties/${property.id}`} onClick={handleCardClick}>
         <div className="relative aspect-[4/3] overflow-hidden">
           <Image
-            src={`${coverImage}?width=400`}
+            src={imageSrc}
             alt={property.title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover transition-transform duration-500 group-hover:scale-110"
+            loading="lazy"
             referrerPolicy="no-referrer"
           />
           
