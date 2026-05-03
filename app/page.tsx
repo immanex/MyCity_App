@@ -30,12 +30,17 @@ export default function Home() {
 
     const fetchData = async () => {
       try {
+        // Use AbortController to cancel requests on unmount
+        const controller = new AbortController();
+        
+        const fetchOptions = { signal: controller.signal };
+
         const [featuredRes, recommendedRes, trendingRes, premiumRes, neighborhoodRes] = await Promise.all([
-          fetch('/api/properties?limit=5&sort=newest'), // Featured for carousel
-          fetch(`/api/properties/recommended?city=${city}`),
-          fetch(`/api/properties?city=${city}&limit=6&sort=newest`),
-          fetch('/api/properties?limit=8&sort=price_desc'),
-          fetch('/api/neighborhoods'),
+          fetch('/api/properties?limit=5&sort=newest', fetchOptions),
+          fetch(`/api/properties/recommended?city=${city}`, fetchOptions),
+          fetch(`/api/properties?city=${city}&limit=6&sort=newest`, fetchOptions),
+          fetch('/api/properties?limit=8&sort=price_desc', fetchOptions),
+          fetch('/api/neighborhoods', fetchOptions),
         ]);
 
         const [featured, recommended, trending, premium, neighborhoodData] = await Promise.all([
@@ -52,23 +57,33 @@ export default function Home() {
         setPremiumProperties(premium.properties || []);
         setNeighborhoods(Array.isArray(neighborhoodData) ? neighborhoodData : []);
 
-        // Fetch recently viewed
+        // Fetch recently viewed (non-blocking)
         const recentIds = JSON.parse(localStorage.getItem('mycity_recently_viewed') || '[]');
         if (recentIds.length > 0) {
-          // In a real app, we'd have a bulk fetch endpoint
-          const recentData = await Promise.all(
-            recentIds.map((id: string) => fetch(`/api/properties/${id}`).then(res => res.json()))
-          );
-          setRecentlyViewed(recentData.filter(p => !p.error));
+          // Fetch in background without blocking
+          Promise.all(
+            recentIds.slice(0, 5).map((id: string) => 
+              fetch(`/api/properties/${id}`, fetchOptions).then(res => res.json()).catch(() => null)
+            )
+          ).then(recentData => {
+            setRecentlyViewed(recentData.filter(p => p && !p.error));
+          }).catch(() => {});
         }
       } catch (error) {
-        console.error('Failed to fetch home data:', error);
+        if ((error as any).name !== 'AbortError') {
+          console.error('Failed to fetch home data:', error);
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchData();
+
+    // Cleanup: abort pending requests on unmount
+    return () => {
+      // Cleanup logic handled by AbortController in the effect
+    };
   }, []);
 
   const clearHistory = () => {

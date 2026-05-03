@@ -42,22 +42,30 @@ export default function PropertyDetailPage() {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
 
   useEffect(() => {
+    const controller = new AbortController();
+    
     const fetchProperty = async () => {
       try {
-        const res = await fetch(`/api/properties/${id}`);
+        const res = await fetch(`/api/properties/${id}`, { signal: controller.signal });
         if (!res.ok) throw new Error('Property not found');
         const data = await res.json();
         setProperty(data);
       } catch (error) {
-        console.error('Failed to fetch property:', error);
-        toast.error('Property not found');
-        router.push('/explore');
+        if ((error as any).name !== 'AbortError') {
+          console.error('Failed to fetch property:', error);
+          toast.error('Property not found');
+          router.push('/explore');
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchProperty();
+
+    return () => {
+      controller.abort();
+    };
   }, [id, router]);
 
   const toggleSave = async () => {
